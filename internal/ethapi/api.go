@@ -18,6 +18,7 @@ package ethapi
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -921,6 +922,11 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 	// Execute the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
 	result, err := core.ApplyMessage(evm, msg, gp)
+	fmt.Printf("OUTSIDE FROM: %v, TO: %v, MAX DEPTH: %v\n", msg.From().Hash(), msg.To().Hash(), evm.GetMaxDepth())
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, uint32(evm.GetMaxDepth()))
+	result.ReturnData = bs
+
 	if err := vmError(); err != nil {
 		return nil, err
 	}

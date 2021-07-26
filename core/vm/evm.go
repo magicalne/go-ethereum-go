@@ -102,6 +102,8 @@ type EVM struct {
 	StateDB StateDB
 	// Depth is the current call stack
 	depth int
+	// Max depth in the current call stack
+	maxDepth int
 
 	// chainConfig contains information about the current chain
 	chainConfig *params.ChainConfig
@@ -165,6 +167,12 @@ func (evm *EVM) Interpreter() *EVMInterpreter {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	defer func() {
+		if evm.depth > evm.maxDepth {
+			evm.maxDepth = evm.depth
+			// fmt.Println("INSIDE", "FROM", caller.Address().Hash(), "TO", addr.Hash(), "max DEPTH: ", evm.maxDepth)
+		}
+	}()
 	if evm.Config.NoRecursion && evm.depth > 0 {
 		return nil, gas, nil
 	}
@@ -362,6 +370,14 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		}
 	}
 	return ret, gas, err
+}
+
+func (evm *EVM) GetDepth() int {
+	return evm.depth
+}
+
+func (evm *EVM) GetMaxDepth() int {
+	return evm.maxDepth
 }
 
 type codeAndHash struct {
