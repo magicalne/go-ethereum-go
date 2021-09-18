@@ -226,6 +226,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			var scope = NewScopeContext()
 			ret, err = evm.interpreter.Run(contract, input, false, &scope)
 			fmt.Println("call map: ", scope.CallMap)
+			fmt.Println("create map: ", scope.CreateMap)
+			fmt.Println("create2 map: ", scope.Create2Map)
 			gas = contract.Gas
 		}
 	}
