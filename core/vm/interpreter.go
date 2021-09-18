@@ -41,9 +41,27 @@ type Config struct {
 // ScopeContext contains the things that are per-call, such as stack and memory,
 // but not transients like pc and gas
 type ScopeContext struct {
-	Memory   *Memory
-	Stack    *Stack
-	Contract *Contract
+	Memory          *Memory
+	Stack           *Stack
+	Contract        *Contract
+	CreateMap       map[common.Address]int
+	Create2Map      map[common.Address]int
+	CallMap         map[common.Address]int
+	CallCodeMap     map[common.Address]int
+	DelegateCallMap map[common.Address]int
+}
+
+func NewScopeContext() ScopeContext {
+	return ScopeContext{
+		Memory:          &Memory{},
+		Stack:           &Stack{},
+		Contract:        &Contract{},
+		CreateMap:       map[common.Address]int{},
+		Create2Map:      map[common.Address]int{},
+		CallMap:         map[common.Address]int{},
+		CallCodeMap:     map[common.Address]int{},
+		DelegateCallMap: map[common.Address]int{},
+	}
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -115,7 +133,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
-func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool, callContext *ScopeContext) (ret []byte, err error) {
 
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
@@ -138,14 +156,19 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	}
 
 	var (
-		op          OpCode        // current opcode
-		mem         = NewMemory() // bound memory
-		stack       = newstack()  // local stack
-		callContext = &ScopeContext{
-			Memory:   mem,
-			Stack:    stack,
-			Contract: contract,
-		}
+		op    OpCode        // current opcode
+		mem   = NewMemory() // bound memory
+		stack = newstack()  // local stack
+		// callContext = &ScopeContext{
+		// 	Memory:          mem,
+		// 	Stack:           stack,
+		// 	Contract:        contract,
+		// 	CreateMap:       map[common.Address]int{},
+		// 	Create2Map:      map[common.Address]int{},
+		// 	CallMap:         map[common.Address]int{},
+		// 	CallCodeMap:     map[common.Address]int{},
+		// 	DelegateCallMap: map[common.Address]int{},
+		// }
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC
 		// to be uint256. Practically much less so feasible.
@@ -157,6 +180,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		logged  bool   // deferred Tracer should ignore already logged steps
 		res     []byte // result of the opcode execution function
 	)
+	callContext.Memory = mem
+	callContext.Stack = stack
+	callContext.Contract = contract
 	// Don't move this deferrred function, it's placed before the capturestate-deferred method,
 	// so that it get's executed _after_: the capturestate needs the stacks before
 	// they are returned to the pools

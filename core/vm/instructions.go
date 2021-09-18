@@ -582,7 +582,10 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 		bigVal = value.ToBig()
 	}
 
+	len := len(input)
 	res, addr, returnGas, suberr := interpreter.evm.Create(scope.Contract, input, gas, bigVal)
+	scope.CreateMap[addr] = len
+
 	// Push item on the stack based on the returned error. If the ruleset is
 	// homestead we must check for CodeStoreOutOfGasError (homestead only
 	// rule) and treat as an error, if the ruleset is frontier we must
@@ -622,8 +625,10 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 	if !endowment.IsZero() {
 		bigEndowment = endowment.ToBig()
 	}
+	code_len := len(input)
 	res, addr, returnGas, suberr := interpreter.evm.Create2(scope.Contract, input, gas,
 		bigEndowment, &salt)
+	scope.Create2Map[addr] = code_len
 	// Push item on the stack based on the returned error.
 	if suberr != nil {
 		stackvalue.Clear()
@@ -661,6 +666,8 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 	}
 
 	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal)
+	code := interpreter.evm.StateDB.GetCode(toAddr)
+	scope.CallMap[toAddr] = len(code)
 
 	if err != nil {
 		temp.Clear()
@@ -696,6 +703,8 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([
 	}
 
 	ret, returnGas, err := interpreter.evm.CallCode(scope.Contract, toAddr, args, gas, bigVal)
+	code := interpreter.evm.StateDB.GetCode(toAddr)
+	scope.CallMap[toAddr] = len(code)
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -723,6 +732,8 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	args := scope.Memory.GetPtr(int64(inOffset.Uint64()), int64(inSize.Uint64()))
 
 	ret, returnGas, err := interpreter.evm.DelegateCall(scope.Contract, toAddr, args, gas)
+	code := interpreter.evm.StateDB.GetCode(toAddr)
+	scope.CallMap[toAddr] = len(code)
 	if err != nil {
 		temp.Clear()
 	} else {
