@@ -582,7 +582,7 @@ func opCreate(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 		bigVal = value.ToBig()
 	}
 
-	len := len(input)
+	len := int32(len(input))
 	res, addr, returnGas, suberr := interpreter.evm.Create(scope.Contract, input, gas, bigVal)
 	scope.CreateMap[addr] = len
 
@@ -625,7 +625,7 @@ func opCreate2(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 	if !endowment.IsZero() {
 		bigEndowment = endowment.ToBig()
 	}
-	code_len := len(input)
+	code_len := int32(len(input))
 	res, addr, returnGas, suberr := interpreter.evm.Create2(scope.Contract, input, gas,
 		bigEndowment, &salt)
 	scope.Create2Map[addr] = code_len
@@ -667,7 +667,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 
 	ret, returnGas, err := interpreter.evm.Call(scope.Contract, toAddr, args, gas, bigVal)
 	code := interpreter.evm.StateDB.GetCode(toAddr)
-	scope.CallMap[toAddr] = len(code)
+	scope.CallMap[toAddr] = int32(len(code))
 
 	if err != nil {
 		temp.Clear()
@@ -704,7 +704,7 @@ func opCallCode(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([
 
 	ret, returnGas, err := interpreter.evm.CallCode(scope.Contract, toAddr, args, gas, bigVal)
 	code := interpreter.evm.StateDB.GetCode(toAddr)
-	scope.CallMap[toAddr] = len(code)
+	scope.CallMap[toAddr] = int32(len(code))
 	if err != nil {
 		temp.Clear()
 	} else {
@@ -733,7 +733,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 
 	ret, returnGas, err := interpreter.evm.DelegateCall(scope.Contract, toAddr, args, gas)
 	code := interpreter.evm.StateDB.GetCode(toAddr)
-	scope.CallMap[toAddr] = len(code)
+	scope.CallMap[toAddr] = int32(len(code))
 	if err != nil {
 		temp.Clear()
 	} else {

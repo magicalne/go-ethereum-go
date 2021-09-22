@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"fmt"
+	"math"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -123,6 +123,7 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+	scope       ScopeContext
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -135,6 +136,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		Config:      config,
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber),
+		scope:       NewScopeContext(),
 	}
 	evm.interpreter = NewEVMInterpreter(evm, config)
 	return evm
@@ -223,11 +225,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			// The depth-check is already done, and precompiles handled above
 			contract := NewContract(caller, AccountRef(addrCopy), value, gas)
 			contract.SetCallCode(&addrCopy, evm.StateDB.GetCodeHash(addrCopy), code)
-			var scope = NewScopeContext()
-			ret, err = evm.interpreter.Run(contract, input, false, &scope)
-			fmt.Println("call map: ", scope.CallMap)
-			fmt.Println("create map: ", scope.CreateMap)
-			fmt.Println("create2 map: ", scope.Create2Map)
+			ret, err = evm.interpreter.Run(contract, input, false, &evm.scope)
 			gas = contract.Gas
 		}
 	}
@@ -279,8 +277,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		// The contract is a scoped environment for this execution context only.
 		contract := NewContract(caller, AccountRef(caller.Address()), value, gas)
 		contract.SetCallCode(&addrCopy, evm.StateDB.GetCodeHash(addrCopy), evm.StateDB.GetCode(addrCopy))
-		var scope = NewScopeContext()
-		ret, err = evm.interpreter.Run(contract, input, false, &scope)
+		ret, err = evm.interpreter.Run(contract, input, false, &evm.scope)
 		gas = contract.Gas
 	}
 	if err != nil {
@@ -315,8 +312,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 		// Initialise a new contract and make initialise the delegate values
 		contract := NewContract(caller, AccountRef(caller.Address()), nil, gas).AsDelegate()
 		contract.SetCallCode(&addrCopy, evm.StateDB.GetCodeHash(addrCopy), evm.StateDB.GetCode(addrCopy))
-		var scope = NewScopeContext()
-		ret, err = evm.interpreter.Run(contract, input, false, &scope)
+		ret, err = evm.interpreter.Run(contract, input, false, &evm.scope)
 		gas = contract.Gas
 	}
 	if err != nil {
@@ -367,8 +363,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		// When an error was returned by the EVM or when setting the creation code
 		// above we revert to the snapshot and consume any gas remaining. Additionally
 		// when we're in Homestead this also counts for code storage gas errors.
-		var scope = NewScopeContext()
-		ret, err = evm.interpreter.Run(contract, input, true, &scope)
+		ret, err = evm.interpreter.Run(contract, input, true, &evm.scope)
 		gas = contract.Gas
 	}
 	if err != nil {
@@ -386,6 +381,77 @@ func (evm *EVM) GetDepth() int {
 
 func (evm *EVM) GetMaxDepth() int {
 	return evm.maxDepth
+}
+
+func (evm *EVM) GetMetaData() Metadata {
+	create_len, create_max, create_min := stats(evm.scope.CreateMap)
+	create2_len, create2_max, create2_min := stats(evm.scope.Create2Map)
+	call_len, call_max, call_min := stats(evm.scope.CallMap)
+	call_code_len, call_code_max, call_code_min := stats(evm.scope.CallCodeMap)
+	delegate_len, delegate_max, delegate_min := stats(evm.scope.DelegateCallMap)
+	metadata := Metadata{
+		callMaxDepth:           int32(evm.maxDepth),
+		createCnt:              create_len,
+		createCodeMaxLen:       create_max,
+		createCodeMinLen:       create_min,
+		create2Cnt:             create2_len,
+		create2CodeMaxLen:      create2_max,
+		create2CodeMinLen:      create2_min,
+		callCnt:                call_len,
+		callCodeMaxLen:         call_max,
+		callCodeMinLen:         call_min,
+		callCodeCnt:            call_code_len,
+		callCodeCodeMaxLen:     call_code_max,
+		callCodeCodeMinLen:     call_code_min,
+		delegateCodeCnt:        delegate_len,
+		delegateCodeCodeMaxLen: delegate_max,
+		delegateCodeCodeMinLen: delegate_min,
+	}
+	return metadata
+}
+
+func stats(mmap map[common.Address]int32) (int32, int32, int32) {
+	l := int32(len(mmap))
+	if l == 0 {
+		return 0, -1, -1
+	}
+	var (
+		max int32 = -1
+		min int32 = math.MaxInt32
+	)
+	for _, code_size := range mmap {
+		if max > code_size {
+			max = code_size
+		}
+		if min < code_size {
+			min = code_size
+		}
+	}
+	return l, max, min
+}
+
+type Metadata struct {
+	callMaxDepth int32
+
+	createCnt        int32
+	createCodeMaxLen int32
+	createCodeMinLen int32
+
+	create2Cnt        int32
+	create2CodeMaxLen int32
+	create2CodeMinLen int32
+
+	callCnt        int32
+	callCodeMaxLen int32
+	callCodeMinLen int32
+
+	callCodeCnt        int32
+	callCodeCodeMaxLen int32
+	callCodeCodeMinLen int32
+
+	delegateCodeCnt        int32
+	delegateCodeCodeMaxLen int32
+	delegateCodeCodeMinLen int32
 }
 
 type codeAndHash struct {
@@ -444,8 +510,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	start := time.Now()
 
-	var scope = NewScopeContext()
-	ret, err := evm.interpreter.Run(contract, nil, false, &scope)
+	ret, err := evm.interpreter.Run(contract, nil, false, &evm.scope)
 
 	// Check whether the max code size has been exceeded, assign err if the case.
 	if err == nil && evm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {

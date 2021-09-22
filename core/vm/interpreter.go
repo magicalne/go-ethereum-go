@@ -44,11 +44,11 @@ type ScopeContext struct {
 	Memory          *Memory
 	Stack           *Stack
 	Contract        *Contract
-	CreateMap       map[common.Address]int
-	Create2Map      map[common.Address]int
-	CallMap         map[common.Address]int
-	CallCodeMap     map[common.Address]int
-	DelegateCallMap map[common.Address]int
+	CreateMap       map[common.Address]int32
+	Create2Map      map[common.Address]int32
+	CallMap         map[common.Address]int32
+	CallCodeMap     map[common.Address]int32
+	DelegateCallMap map[common.Address]int32
 }
 
 func NewScopeContext() ScopeContext {
@@ -56,11 +56,11 @@ func NewScopeContext() ScopeContext {
 		Memory:          &Memory{},
 		Stack:           &Stack{},
 		Contract:        &Contract{},
-		CreateMap:       map[common.Address]int{},
-		Create2Map:      map[common.Address]int{},
-		CallMap:         map[common.Address]int{},
-		CallCodeMap:     map[common.Address]int{},
-		DelegateCallMap: map[common.Address]int{},
+		CreateMap:       map[common.Address]int32{},
+		Create2Map:      map[common.Address]int32{},
+		CallMap:         map[common.Address]int32{},
+		CallCodeMap:     map[common.Address]int32{},
+		DelegateCallMap: map[common.Address]int32{},
 	}
 }
 

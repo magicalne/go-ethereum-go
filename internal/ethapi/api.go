@@ -17,6 +17,7 @@
 package ethapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -923,10 +924,12 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 	// Execute the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
 	result, err := core.ApplyMessage(evm, msg, gp)
-	fmt.Printf("OUTSIDE FROM: %v, TO: %v, MAX DEPTH: %v\n", msg.From().Hash(), msg.To().Hash(), evm.GetMaxDepth())
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, uint32(evm.GetMaxDepth()))
-	result.ReturnData = bs
+	// fmt.Printf("OUTSIDE FROM: %v, TO: %v, MAX DEPTH: %v\n", msg.From().Hash(), msg.To().Hash(), evm.GetMaxDepth())
+	metadata := evm.GetMetaData()
+	fmt.Printf("scope context: %v", metadata)
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, metadata)
+	result.ReturnData = bin_buf.Bytes()
 
 	if err := vmError(); err != nil {
 		return nil, err

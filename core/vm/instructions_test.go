@@ -109,11 +109,11 @@ func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFu
 			Memory:          &Memory{},
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 		if len(stack.data) != 1 {
 			t.Errorf("Expected one item on stack after %v, got %d: ", name, len(stack.data))
@@ -233,11 +233,11 @@ func TestAddMod(t *testing.T) {
 			Memory:          &Memory{},
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
@@ -264,11 +264,11 @@ func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcas
 			Memory:          &Memory{},
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 		actual := stack.pop()
 		result[i] = TwoOperandTestcase{param.x, param.y, fmt.Sprintf("%064x", actual)}
@@ -331,11 +331,11 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 			Memory:          &Memory{},
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 		stack.pop()
 	}
@@ -566,11 +566,11 @@ func TestOpMstore(t *testing.T) {
 		Memory:          mem,
 		Stack:           stack,
 		Contract:        &Contract{},
-		CreateMap:       map[common.Address]int{},
-		Create2Map:      map[common.Address]int{},
-		CallMap:         map[common.Address]int{},
-		CallCodeMap:     map[common.Address]int{},
-		DelegateCallMap: map[common.Address]int{},
+		CreateMap:       map[common.Address]int32{},
+		Create2Map:      map[common.Address]int32{},
+		CallMap:         map[common.Address]int32{},
+		CallCodeMap:     map[common.Address]int32{},
+		DelegateCallMap: map[common.Address]int32{},
 	})
 	if got := common.Bytes2Hex(mem.GetCopy(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
@@ -580,11 +580,11 @@ func TestOpMstore(t *testing.T) {
 		Memory:          mem,
 		Stack:           stack,
 		Contract:        &Contract{},
-		CreateMap:       map[common.Address]int{},
-		Create2Map:      map[common.Address]int{},
-		CallMap:         map[common.Address]int{},
-		CallCodeMap:     map[common.Address]int{},
-		DelegateCallMap: map[common.Address]int{},
+		CreateMap:       map[common.Address]int32{},
+		Create2Map:      map[common.Address]int32{},
+		CallMap:         map[common.Address]int32{},
+		CallCodeMap:     map[common.Address]int32{},
+		DelegateCallMap: map[common.Address]int32{},
 	})
 	if common.Bytes2Hex(mem.GetCopy(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
@@ -612,11 +612,11 @@ func BenchmarkOpMstore(bench *testing.B) {
 			Memory:          mem,
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 	}
 }
@@ -640,11 +640,11 @@ func BenchmarkOpSHA3(bench *testing.B) {
 			Memory:          mem,
 			Stack:           stack,
 			Contract:        &Contract{},
-			CreateMap:       map[common.Address]int{},
-			Create2Map:      map[common.Address]int{},
-			CallMap:         map[common.Address]int{},
-			CallCodeMap:     map[common.Address]int{},
-			DelegateCallMap: map[common.Address]int{},
+			CreateMap:       map[common.Address]int32{},
+			Create2Map:      map[common.Address]int32{},
+			CallMap:         map[common.Address]int32{},
+			CallCodeMap:     map[common.Address]int32{},
+			DelegateCallMap: map[common.Address]int32{},
 		})
 	}
 }
